@@ -1,6 +1,7 @@
 package com.example.gameSalesService.entity;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
 @Entity

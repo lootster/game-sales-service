@@ -14,6 +14,8 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -199,6 +201,52 @@ public class GameControllerTest {
                 .andExpect(jsonPath("$.games[1].gameName", is("GameB"))); // Validate game name
     }
 
+    @Test
+    public void shouldReturnGameSalesAcrossMultiplePages() throws Exception {
+        // Arrange: Mock the repository to return a large number of games across multiple pages
+        List<Game> gamesPage1 = createGameList(100, "GamePage1_");
+        List<Game> gamesPage2 = createGameList(100, "GamePage2_");
+
+        Page<Game> gamePage1 = new PageImpl<>(gamesPage1);
+        Page<Game> gamePage2 = new PageImpl<>(gamesPage2);
+
+        given(gameRepository.findAll(PageRequest.of(0, 100))).willReturn(gamePage1);
+        given(gameRepository.findAll(PageRequest.of(1, 100))).willReturn(gamePage2);
+
+        // Act & Assert - First Page
+        mockMvc.perform(get("/api/getGameSales")
+                        .param("page", "0")
+                        .param("size", "100"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.games", hasSize(100)))
+                .andExpect(jsonPath("$.games[0].gameName", is("GamePage1_1")));
+
+        // Act & Assert - Second Page
+        mockMvc.perform(get("/api/getGameSales")
+                        .param("page", "1")
+                        .param("size", "100"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.games", hasSize(100)))
+                .andExpect(jsonPath("$.games[0].gameName", is("GamePage2_1")));
+    }
+
+    private List<Game> createGameList(int count, String gameNamePrefix) {
+        List<Game> games = new ArrayList<>();
+        for (int i = 1; i <= count; i++) {
+            Game game = new Game();
+            game.setId((long) i);
+            game.setGameName(gameNamePrefix + i);
+            game.setGameNo(i);
+            game.setGameCode("Code" + i);
+            game.setType(1);
+            game.setCostPrice(50.0 + i);
+            game.setTax(5.0);
+            game.setSalePrice(60.0 + i);
+            game.setDateOfSale(LocalDateTime.now());
+            games.add(game);
+        }
+        return games;
+    }
 
 
 }

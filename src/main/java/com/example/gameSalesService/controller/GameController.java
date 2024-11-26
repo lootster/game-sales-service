@@ -19,7 +19,10 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -37,19 +40,53 @@ public class GameController {
     @PostMapping("/import")
     public ResponseEntity<String> importCsv(@RequestParam("file") MultipartFile file) {
         try {
-            // Read the CSV file line by line to simulate basic processing
+            List<Game> games = new ArrayList<>();
+
+            // Read the CSV file line by line
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
                 String line;
+                boolean isFirstLine = true;
+
                 while ((line = reader.readLine()) != null) {
-                    // Just print out the line as a placeholder
-                    System.out.println(line);
+                    // Skip the header line
+                    if (isFirstLine) {
+                        isFirstLine = false;
+                        continue;
+                    }
+
+                    // Split the CSV line
+                    String[] fields = line.split(",");
+
+                    // Ensure the record has the expected number of fields
+                    if (fields.length != 9) {
+                        continue;
+                    }
+
+                    // Create a new Game object from the CSV fields
+                    Game game = new Game();
+                    game.setId(Long.parseLong(fields[0]));
+                    game.setGameNo(Integer.parseInt(fields[1]));
+                    game.setGameName(fields[2]);
+                    game.setGameCode(fields[3]);
+                    game.setType(Integer.parseInt(fields[4]));
+                    game.setCostPrice(Double.parseDouble(fields[5]));
+                    game.setTax(Double.parseDouble(fields[6]));
+                    game.setSalePrice(Double.parseDouble(fields[7]));
+                    game.setDateOfSale(LocalDateTime.parse(fields[8]));
+
+                    games.add(game);
                 }
             }
-            return ResponseEntity.ok("File imported successfully");
+
+            // Save all games to the database
+            gameRepository.saveAll(games);
+
+            return ResponseEntity.ok("File imported and records saved successfully");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to import file");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to import file and save records");
         }
     }
+
 
     @GetMapping("/getGameSales")
     public ResponseEntity<Map<String, Object>> getGameSales(

@@ -2,6 +2,7 @@ package com.example.gameSalesService.controller;
 
 import com.example.gameSalesService.entity.Game;
 import com.example.gameSalesService.repository.GameRepository;
+import com.example.gameSalesService.service.ImportService;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -36,6 +37,9 @@ public class GameControllerTest {
     @MockBean
     private GameRepository gameRepository;
 
+    @MockBean
+    private ImportService importService;
+
     @Test
     public void shouldReturnStatusOkForHealthCheck() throws Exception {
         mockMvc.perform(get("/api/health"))
@@ -57,7 +61,7 @@ public class GameControllerTest {
 
         mockMvc.perform(multipart("/api/import")
                         .file(csvFile))
-                .andExpect(status().isOk());
+                .andExpect(status().isAccepted());
     }
 
     @Test

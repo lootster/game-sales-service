@@ -2,12 +2,14 @@ package com.example.gameSalesService.controller;
 
 import com.example.gameSalesService.entity.Game;
 import com.example.gameSalesService.repository.GameRepository;
+import com.example.gameSalesService.service.ImportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -27,10 +30,14 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api")  // Optional base path to organize the endpoints
+@EnableAsync
 public class GameController {
 
     @Autowired
     private GameRepository gameRepository;
+
+    @Autowired
+    private ImportService importService;  // A new service to handle importing in the background
 
     @GetMapping("/health")
     public String healthCheck() {
@@ -40,52 +47,20 @@ public class GameController {
     @PostMapping("/import")
     public ResponseEntity<String> importCsv(@RequestParam("file") MultipartFile file) {
         try {
-            List<Game> games = new ArrayList<>();
+            // Save file to temporary storage for asynchronous processing
+            String tempFilePath = "/tmp/" + file.getOriginalFilename();
+            File tempFile = new File(tempFilePath);
+            file.transferTo(tempFile);
 
-            // Read the CSV file line by line
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
-                String line;
-                boolean isFirstLine = true;
+            // Process asynchronously
+            importService.processFileAsync(tempFilePath);
 
-                while ((line = reader.readLine()) != null) {
-                    // Skip the header line
-                    if (isFirstLine) {
-                        isFirstLine = false;
-                        continue;
-                    }
-
-                    // Split the CSV line
-                    String[] fields = line.split(",");
-
-                    // Ensure the record has the expected number of fields
-                    if (fields.length != 9) {
-                        continue;
-                    }
-
-                    // Create a new Game object from the CSV fields
-                    Game game = new Game();
-                    game.setId(Long.parseLong(fields[0]));
-                    game.setGameNo(Integer.parseInt(fields[1]));
-                    game.setGameName(fields[2]);
-                    game.setGameCode(fields[3]);
-                    game.setType(Integer.parseInt(fields[4]));
-                    game.setCostPrice(Double.parseDouble(fields[5]));
-                    game.setTax(Double.parseDouble(fields[6]));
-                    game.setSalePrice(Double.parseDouble(fields[7]));
-                    game.setDateOfSale(LocalDateTime.parse(fields[8]));
-
-                    games.add(game);
-                }
-            }
-
-            // Save all games to the database
-            gameRepository.saveAll(games);
-
-            return ResponseEntity.ok("File imported and records saved successfully");
+            return ResponseEntity.accepted().body("File received, processing in the background...");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to import file and save records");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to receive file");
         }
     }
+
 
 
     @GetMapping("/getGameSales")

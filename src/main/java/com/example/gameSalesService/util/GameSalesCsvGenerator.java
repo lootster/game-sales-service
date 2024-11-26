@@ -1,5 +1,8 @@
 package com.example.gameSalesService.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDate;
@@ -8,7 +11,9 @@ import java.util.Random;
 
 public class GameSalesCsvGenerator {
 
-    public static final int RECORD_COUNT = 10_000;
+    private static final Logger logger = LoggerFactory.getLogger(GameSalesCsvGenerator.class);
+
+    public static final int RECORD_COUNT = 1_000_000;
 
     public static void main(String[] args) {
         generateCsvFile("src/main/resources/game_sales_records.csv", RECORD_COUNT);
@@ -36,16 +41,15 @@ public class GameSalesCsvGenerator {
                         .atStartOfDay()
                         .plusDays(random.nextInt(30));
 
-
                 // Write each record to CSV
                 writer.append(String.format("%d,%d,%s,%s,%d,%.2f,%.2f,%.2f,%s\n",
                         i, gameNo, gameName, gameCode, type, costPrice, tax, salePrice, dateOfSale));
             }
 
-            System.out.println("CSV file created successfully at " + filePath);
+            logger.info("CSV file created successfully at {}", filePath);
 
         } catch (IOException e) {
-            System.err.println("Error occurred while writing the CSV file: " + e.getMessage());
+            logger.error("Error occurred while writing the CSV file: {}", e.getMessage(), e);
         }
     }
 }

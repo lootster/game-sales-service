@@ -3,6 +3,8 @@ package com.example.gameSalesService.controller;
 import com.example.gameSalesService.entity.Game;
 import com.example.gameSalesService.repository.GameRepository;
 import com.example.gameSalesService.service.ImportService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -17,7 +19,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,6 +30,8 @@ import java.util.Map;
 @RequestMapping("/api")  // Optional base path to organize the endpoints
 @EnableAsync
 public class GameController {
+
+    private static final Logger logger = LoggerFactory.getLogger(GameController.class);
 
     @Autowired
     private GameRepository gameRepository;
@@ -40,22 +46,22 @@ public class GameController {
 
     @PostMapping("/import")
     public ResponseEntity<String> importCsv(@RequestParam("file") MultipartFile file) {
+        Instant start = Instant.now();  // Record start time
+
         try {
-            // Save file to temporary storage for asynchronous processing
-            String tempFilePath = "/tmp/" + file.getOriginalFilename();
-            File tempFile = new File(tempFilePath);
-            file.transferTo(tempFile);
+            // Save the file temporarily for processing
+            Path tempFile = Files.createTempFile("game_sales_import_", ".csv");
+            Files.write(tempFile, file.getBytes());
 
-            // Process asynchronously
-            importService.processFileAsync(tempFilePath);
+            // Call the ImportService to handle the import asynchronously
+            importService.processFileAsync(tempFile.toString(), start);  // Passing start time
 
-            return ResponseEntity.accepted().body("File received, processing in the background...");
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body("File received, processing in the background...");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to receive file");
+            logger.error("Failed to process import CSV request: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to import file");
         }
     }
-
-
 
     @GetMapping("/getGameSales")
     public ResponseEntity<Map<String, Object>> getGameSales(
@@ -95,8 +101,5 @@ public class GameController {
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
-
-
-
 
 }

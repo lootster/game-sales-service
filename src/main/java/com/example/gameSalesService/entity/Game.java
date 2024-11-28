@@ -2,7 +2,7 @@ package com.example.gameSalesService.entity;
 
 import jakarta.persistence.*;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "game_sales")
@@ -34,7 +34,7 @@ public class Game {
     private Double salePrice;
 
     @Column(name = "date_of_sale", nullable = false)
-    private LocalDateTime dateOfSale;
+    private LocalDate dateOfSale;
 
     // Getters and Setters
     public Long getId() {
@@ -101,11 +101,11 @@ public class Game {
         this.salePrice = salePrice;
     }
 
-    public LocalDateTime getDateOfSale() {
+    public LocalDate getDateOfSale() {
         return dateOfSale;
     }
 
-    public void setDateOfSale(LocalDateTime dateOfSale) {
+    public void setDateOfSale(LocalDate dateOfSale) {
         this.dateOfSale = dateOfSale;
     }
 }

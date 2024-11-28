@@ -11,7 +11,7 @@ import org.springframework.scheduling.annotation.Async;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -57,7 +57,7 @@ public class ImportService {
                     game.setCostPrice(Double.parseDouble(fields[5]));
                     game.setTax(Double.parseDouble(fields[6]));
                     game.setSalePrice(Double.parseDouble(fields[7]));
-                    game.setDateOfSale(LocalDateTime.parse(fields[8]));
+                    game.setDateOfSale(LocalDate.parse(fields[8]));
 
                     gamesBatch.add(game);
 

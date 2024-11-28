@@ -15,7 +15,6 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -107,11 +106,11 @@ public class GameControllerTest {
         // Arrange: Mock the repository to return games within a specified date range
         Game gameA = new Game();
         gameA.setGameName("GameA");
-        gameA.setDateOfSale(LocalDate.of(2024, 11, 25).atStartOfDay());
+        gameA.setDateOfSale(LocalDate.of(2024, 11, 25));
 
         Game gameB = new Game();
         gameB.setGameName("GameB");
-        gameB.setDateOfSale(LocalDate.of(2024, 11, 26).atStartOfDay());
+        gameB.setDateOfSale(LocalDate.of(2024, 11, 26));
 
         List<Game> games = Arrays.asList(gameA, gameB);
         Page<Game> gamePage = new PageImpl<>(games);
@@ -246,7 +245,7 @@ public class GameControllerTest {
             game.setCostPrice(50.0 + i);
             game.setTax(5.0);
             game.setSalePrice(60.0 + i);
-            game.setDateOfSale(LocalDateTime.now());
+            game.setDateOfSale(LocalDate.now());
             games.add(game);
         }
         return games;

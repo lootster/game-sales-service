@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Random;
 
 public class GameSalesCsvGenerator {
@@ -37,9 +36,7 @@ public class GameSalesCsvGenerator {
                 double tax = Math.round((costPrice * 0.09) * 100.0) / 100.0; // 9% tax
                 double salePrice = Math.round((costPrice + tax) * 100.0) / 100.0; // Sale price inclusive of tax
                 // Generate a random date between April 1st and April 30th of the current year
-                LocalDateTime dateOfSale = LocalDate.of(2024, 4, 1)
-                        .atStartOfDay()
-                        .plusDays(random.nextInt(30));
+                LocalDate dateOfSale = LocalDate.of(2024, 4, 1).plusDays(random.nextInt(30));
 
                 // Write each record to CSV
                 writer.append(String.format("%d,%d,%s,%s,%d,%.2f,%.2f,%.2f,%s\n",

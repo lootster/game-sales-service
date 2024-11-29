@@ -2,6 +2,8 @@ package com.example.gameSalesService.controller;
 
 import com.example.gameSalesService.entity.Game;
 import com.example.gameSalesService.repository.GameRepository;
+import com.example.gameSalesService.entity.GameSalesAggregated;
+import com.example.gameSalesService.repository.GameSalesAggregatedRepository;
 import com.example.gameSalesService.service.ImportService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +40,9 @@ public class GameController {
 
     @Autowired
     private ImportService importService;  // A new service to handle importing in the background
+
+    @Autowired
+    private GameSalesAggregatedRepository gameSalesAggregatedRepository;
 
     @GetMapping("/health")
     public String healthCheck() {
@@ -103,4 +108,64 @@ public class GameController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    @GetMapping("/getTotalSales")
+    public ResponseEntity<Object> getTotalSales(
+            @RequestParam LocalDate fromDate,
+            @RequestParam LocalDate toDate,
+            @RequestParam(required = false) Integer gameNo,
+            @RequestParam(defaultValue = "totalSales") String filter) {
+
+        Map<String, Object> result = new HashMap<>();
+
+        // Check if filter is "salesCount" and gameNo is provided together
+        if ("salesCount".equalsIgnoreCase(filter) && gameNo != null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "To get sales count, gameNo must not be included."));
+        }
+
+        // Check if the filter is "salesCount"
+        if ("salesCount".equalsIgnoreCase(filter)) {
+            // Get the total games sold for the given period
+            int totalGamesSold = gameSalesAggregatedRepository
+                    .findSalesCountByDateOfSaleBetween(fromDate, toDate)
+                    .stream()
+                    .mapToInt(GameSalesAggregated::getTotalGamesSold)
+                    .sum();
+
+            // If no data found
+            if (totalGamesSold == 0) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("No sales count data found for the given period.");
+            }
+            result.put("totalGamesSold", totalGamesSold);
+        } else {
+            // Get the total sales for the given period
+            double totalSales;
+
+            if (gameNo != null) {
+                // Fetch total sales for a specific game number
+                totalSales = gameSalesAggregatedRepository
+                        .findTotalSalesByDateOfSaleBetweenAndGameNo(fromDate, toDate, gameNo)
+                        .stream()
+                        .mapToDouble(GameSalesAggregated::getTotalSales)
+                        .sum();
+            } else {
+                // Fetch total sales for all games in the given period
+                totalSales = gameSalesAggregatedRepository
+                        .findTotalSalesByDateOfSaleBetween(fromDate, toDate)
+                        .stream()
+                        .mapToDouble(GameSalesAggregated::getTotalSales)
+                        .sum();
+            }
+
+            // If no data found
+            if (totalSales == 0) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("No total sales data found for the given period.");
+            }
+            result.put("totalSales", totalSales);
+        }
+
+        return ResponseEntity.ok(result);
+    }
 }

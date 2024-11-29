@@ -2,6 +2,7 @@ package com.example.gameSalesService.controller;
 
 import com.example.gameSalesService.entity.Game;
 import com.example.gameSalesService.repository.GameRepository;
+import com.example.gameSalesService.repository.GameSalesAggregatedRepository;
 import com.example.gameSalesService.service.CacheWarmupService;
 import com.example.gameSalesService.service.ImportService;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,9 @@ public class GameControllerTest {
 
     @MockBean
     private GameRepository gameRepository;
+
+    @MockBean
+    private GameSalesAggregatedRepository gameSalesAggregatedRepository;
 
     @MockBean
     private ImportService importService;

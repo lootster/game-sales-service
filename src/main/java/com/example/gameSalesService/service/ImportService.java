@@ -1,7 +1,9 @@
 package com.example.gameSalesService.service;
 
 import com.example.gameSalesService.entity.Game;
+import com.example.gameSalesService.entity.GameSalesAggregated;
 import com.example.gameSalesService.repository.GameRepository;
+import com.example.gameSalesService.repository.GameSalesAggregatedRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.EntityTransaction;
@@ -17,6 +19,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.time.Duration;
@@ -30,15 +34,18 @@ public class ImportService {
     private GameRepository gameRepository;
 
     @Autowired
+    private GameSalesAggregatedRepository gameSalesAggregatedRepository;
+
+    @Autowired
     private EntityManagerFactory entityManagerFactory;
 
     @Async
     public void processFileAsync(String filePath, Instant start) {
         try {
-            int batchSize = 2000;  // Increased batch size for optimal performance
-            ExecutorService executor = Executors.newFixedThreadPool(10);  // Increased threads to 20 for better performance
-
+            int batchSize = 2000;
+            ExecutorService executor = Executors.newFixedThreadPool(10);
             List<Game> gamesBatch = new ArrayList<>();
+            Map<LocalDate, GameSalesAggregated> aggregationMap = new ConcurrentHashMap<>();
 
             try (BufferedReader reader = new BufferedReader(new FileReader(filePath, StandardCharsets.UTF_8))) {
                 String line;
@@ -69,7 +76,28 @@ public class ImportService {
 
                     gamesBatch.add(game);
 
-                    // When batchSize limit is reached, submit batch for saving
+                    // Aggregation logic
+                    LocalDate saleDate = game.getDateOfSale();
+                    double salePrice = game.getSalePrice();
+                    Integer gameNo = game.getGameNo();
+
+                    // Aggregate by date and game number
+                    aggregationMap.compute(saleDate, (date, aggregated) -> {
+                        if (aggregated == null) {
+                            aggregated = new GameSalesAggregated();
+                            aggregated.setDateOfSale(date);
+                            aggregated.setTotalGamesSold(0);
+                            aggregated.setTotalSales(0.0);
+                            aggregated.setGameNo(gameNo);  // Set game number
+                        }
+
+                        aggregated.setTotalGamesSold(aggregated.getTotalGamesSold() + 1);
+                        aggregated.setTotalSales(aggregated.getTotalSales() + salePrice);
+
+                        return aggregated;
+                    });
+
+                    // Save the batch when batchSize is reached
                     if (gamesBatch.size() >= batchSize) {
                         List<Game> batchToSave = new ArrayList<>(gamesBatch);
                         executor.submit(() -> saveBatch(batchToSave));
@@ -90,6 +118,9 @@ public class ImportService {
                 Thread.sleep(10);
             }
 
+            // Save aggregated data after processing all records
+            saveAggregatedData(aggregationMap);
+
             // Record end time and calculate duration
             Instant end = Instant.now();
             long timeElapsed = Duration.between(start, end).toMillis();
@@ -109,10 +140,10 @@ public class ImportService {
             for (Game game : games) {
                 em.persist(game);
             }
-            transaction.commit(); // Commit after all records are persisted
+            transaction.commit();
         } catch (Exception e) {
             if (transaction.isActive()) {
-                transaction.rollback(); // Rollback if there's an error
+                transaction.rollback();
             }
             logger.error("Failed to save batch: {}", e.getMessage(), e);
         } finally {
@@ -120,4 +151,23 @@ public class ImportService {
         }
     }
 
+    private void saveAggregatedData(Map<LocalDate, GameSalesAggregated> aggregationMap) {
+        EntityManager em = entityManagerFactory.createEntityManager();
+        EntityTransaction transaction = em.getTransaction();
+
+        try {
+            transaction.begin();
+            for (GameSalesAggregated aggregated : aggregationMap.values()) {
+                em.persist(aggregated);
+            }
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction.isActive()) {
+                transaction.rollback();
+            }
+            logger.error("Failed to save aggregated data: {}", e.getMessage(), e);
+        } finally {
+            em.close();
+        }
+    }
 }

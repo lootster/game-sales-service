@@ -2,6 +2,7 @@ package com.example.gameSalesService.controller;
 
 import com.example.gameSalesService.entity.Game;
 import com.example.gameSalesService.repository.GameRepository;
+import com.example.gameSalesService.service.CacheWarmupService;
 import com.example.gameSalesService.service.ImportService;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -38,6 +39,9 @@ public class GameControllerTest {
 
     @MockBean
     private ImportService importService;
+
+    @MockBean
+    private CacheWarmupService cacheWarmupService;
 
     @Test
     public void shouldReturnStatusOkForHealthCheck() throws Exception {

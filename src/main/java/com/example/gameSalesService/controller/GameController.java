@@ -14,7 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -63,6 +63,7 @@ public class GameController {
         }
     }
 
+    @Cacheable(value = "gameSalesCache", key = "#page + '-' + #size + '-' + #fromDate + '-' + #toDate + '-' + #salePrice + '-' + #filter")
     @GetMapping("/getGameSales")
     public ResponseEntity<Map<String, Object>> getGameSales(
             @RequestParam(required = false) LocalDate fromDate,

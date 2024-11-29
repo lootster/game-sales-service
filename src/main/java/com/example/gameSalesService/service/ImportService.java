@@ -3,13 +3,13 @@ package com.example.gameSalesService.service;
 import com.example.gameSalesService.entity.Game;
 import com.example.gameSalesService.repository.GameRepository;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityTransaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.nio.charset.StandardCharsets;
@@ -29,10 +29,13 @@ public class ImportService {
     @Autowired
     private GameRepository gameRepository;
 
+    @Autowired
+    private EntityManagerFactory entityManagerFactory;
+
     @Async
     public void processFileAsync(String filePath, Instant start) {
         try {
-            int batchSize = 5000;  // Increased batch size for optimal performance
+            int batchSize = 2000;  // Increased batch size for optimal performance
             ExecutorService executor = Executors.newFixedThreadPool(10);  // Increased threads to 20 for better performance
 
             List<Game> gamesBatch = new ArrayList<>();
@@ -97,12 +100,23 @@ public class ImportService {
         }
     }
 
-    @Transactional
     private void saveBatch(List<Game> games) {
+        EntityManager em = entityManagerFactory.createEntityManager();
+        EntityTransaction transaction = em.getTransaction();
+
         try {
-            gameRepository.saveAll(games);
+            transaction.begin();
+            for (Game game : games) {
+                em.persist(game);
+            }
+            transaction.commit(); // Commit after all records are persisted
         } catch (Exception e) {
+            if (transaction.isActive()) {
+                transaction.rollback(); // Rollback if there's an error
+            }
             logger.error("Failed to save batch: {}", e.getMessage(), e);
+        } finally {
+            em.close();
         }
     }
 

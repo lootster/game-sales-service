@@ -80,6 +80,8 @@ public class GameController {
             @RequestParam(defaultValue = "100") int size,
             @RequestParam(required = false) String filter) {
 
+        long startTime = System.currentTimeMillis();  // Start time
+
         Pageable pageable = PageRequest.of(page, size);
         Page<Game> gamePage;
 
@@ -107,6 +109,8 @@ public class GameController {
         response.put("totalItems", gamePage.getTotalElements());
         response.put("totalPages", gamePage.getTotalPages());
 
+        logExecutionTime("Time taken for /getGameSales: {} ms", startTime);
+
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -117,10 +121,13 @@ public class GameController {
             @RequestParam(required = false) Integer gameNo,
             @RequestParam(defaultValue = "totalSales") String filter) {
 
+        long startTime = System.currentTimeMillis();  // Start time
+
         Map<String, Object> result = new HashMap<>();
 
         // Check if filter is "salesCount" and gameNo is provided together
         if ("salesCount".equalsIgnoreCase(filter) && gameNo != null) {
+            logExecutionTime("Time taken for /getTotalSales: {} ms", startTime);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", "To get sales count, gameNo must not be included."));
         }
@@ -136,6 +143,7 @@ public class GameController {
 
             // If no data found
             if (totalGamesSold == 0) {
+                logExecutionTime("Time taken for /getTotalSales: {} ms", startTime);
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body("No sales count data found for the given period.");
             }
@@ -162,6 +170,7 @@ public class GameController {
 
             // If no data found
             if (totalSales == 0) {
+                logExecutionTime("Time taken for /getTotalSales: {} ms", startTime);
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body("No total sales data found for the given period.");
             }
@@ -170,6 +179,13 @@ public class GameController {
             result.put("totalSales", roundedTotalSales.toPlainString());
         }
 
+        logExecutionTime("Time taken for /getTotalSales: {} ms", startTime);
+
         return ResponseEntity.ok(result);
+    }
+
+    private static void logExecutionTime(String s, long startTime) {
+        long endTime = System.currentTimeMillis();  // End time
+        logger.info(s, (endTime - startTime));
     }
 }

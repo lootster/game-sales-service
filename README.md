@@ -125,9 +125,9 @@ mvn clean install
 ### 2.1 MySQL Installation
 - **Windows**: Use the MySQL installer from [MySQL Downloads](https://dev.mysql.com/downloads/installer/).
 - **Mac**: Use Homebrew to install MySQL:
-  ```sh
-  brew install mysql
-  ```
+```sh
+brew install mysql
+```
 
 ### 2.2 Database Setup
 Create a new database named `game_sales_db`:
@@ -145,50 +145,99 @@ Use MySQL Workbench to interact with the database for visualization and running 
 
 ---
 
-## 3. Set Up Postman for Testing
+## 3. Generating CSV File for Game Sales
+### To generate a sample CSV file with game sales records, follow these steps:
 
-### 3.1 Installation
+- **Navigate to the Project Directory:** Make sure you are in the root directory `/gameSalesService`.
+
+- **Run the Java Program:** Use the following command to generate the CSV file:
+
+```sh
+mvn exec:java -Dexec.mainClass="com.example.gameSalesService.util.GameSalesCsvGenerator"
+````
+### Generated File:
+
+- The CSV file will be created in the directory `src/main/resources/` with the filename game_sales_records.csv.
+- The default CSV file contains *1,000,000* records.
+
+Make sure to adjust the file path or record count in the GameSalesCsvGenerator class if needed.
+
+---
+
+## 4. Import CSV Data Using Postman
+Follow these steps to import a CSV file using Postman and save the data into the MySQL database:
+
+### 4.1 Start the MySQL Database Server:
+
+- Ensure your MySQL server is running. You can use MySQL Workbench or run the following command (depending on your system):
+```sh
+# macOS
+mysql.server start
+
+# Windows
+net start MySQL
+```
+### 4.2 Start the Application:
+
+- Run the Spring Boot application by executing:
+```sh
+mvn spring-boot:run
+````
+### 4.3 Open Postman:
+
+- Launch Postman on your machine.
+
+### 4.4 Create a New Request:
+
+- Select **New > Request > POST**
+- Set the request URL to:
+```bash
+http://localhost:8080/api/import
+````
+### 4.5 Set Up the Request:
+
+- Select **Body**
+- Choose **form-data**
+- Add a new key named file with type File.
+- Upload the CSV file (`game_sales_records.csv`) that you want to import. You can generate this CSV file using the provided utility (`GameSalesCsvGenerator.java`).
+
+### 4.6 Send the Request:
+
+- Click on Send to upload and import the CSV file.
+- You should receive a response indicating that the file has been received and is being processed in the background.
+
+### 4.7 Verify Data in Database:
+
+You can verify if the records have been imported by connecting to the MySQL database using MySQL Workbench and checking the following tables:
+- **game_sales**: Contains the details of each game sale.
+- **game_sales_aggregated**: Contains aggregated sales data for reporting purposes, such as the total games sold and total sales within a specified date range.
+
+Note: Make sure the Spring Boot application is running, and the database is properly set up as mentioned in the previous sections of this README.
+
+---
+
+## 5. Set Up Postman for Testing
+
+### 5.1 Installation
 - **Windows/Mac**: Download and install Postman from [Postman Downloads](https://www.postman.com/downloads/).
 
-### 3.2 Testing GameController API
+### 5.2 Testing GameController API
 - **Import CSV File**:
-   - Endpoint: `POST /api/import`
-   - Headers: `Content-Type: multipart/form-data`
-   - Body: Select the CSV file you want to import.
+  - Endpoint: `POST /api/import`
+  - Headers: `Content-Type: multipart/form-data`
+  - Body: Select the CSV file you want to import.
 - **Get Game Sales**:
-   - Endpoint: `GET /api/getGameSales`
-   - Parameters: `fromDate`, `toDate`, `salePrice`, `filter`, `page`, `size`.
-   - Test different scenarios such as providing date ranges or price filters to see paginated results.
+  - Endpoint: `GET /api/getGameSales`
+  - Parameters: `fromDate`, `toDate`, `salePrice`, `filter`, `page`, `size`.
+  - Test different scenarios such as providing date ranges or price filters to see paginated results.
 - **Get Total Sales**:
-   - Endpoint: `GET /api/getTotalSales`
-   - Parameters: `fromDate`, `toDate`, `gameNo`, `filter`.
+  - Endpoint: `GET /api/getTotalSales`
+  - Parameters: `fromDate`, `toDate`, `gameNo`, `filter`.
 
 Ensure that you set the parameters in the Postman request to match the different test scenarios provided in the requirements.
 
 ---
-
-## 4. Running on Mac and Windows
-
-### 4.1 Start MySQL Server
-- **Windows**: Start MySQL server through the MySQL service.
-- **Mac**:
-  ```sh
-  mysql.server start
-  ```
-
-### 4.2 Running the Application
-Navigate to the root directory and run the following command:
-```sh
-mvn spring-boot:run
-```
-
-### 4.3 Differences in Setup Commands
-- **MySQL Installation**: Windows uses an installer while macOS uses Homebrew.
-- **Starting MySQL**: Mac requires using `mysql.server start`.
-
----
-
-## 5. Summary of Task Requirements
+## 6. Summary of Task Requirements
 
 1. **Task 1**: Develop the `/import` endpoint to accept a CSV file containing game sales data with the specified columns.
 2. **Task 2**: Design and create the necessary tables (`game_sales`, progress-tracking table).
@@ -198,7 +247,7 @@ mvn spring-boot:run
 
 ---
 
-## 6. Approach
+## 7. Approach
 
 - **Caching**: Simple in-memory caching (`spring.cache.type=simple`) is used to improve response time, particularly for frequently requested pages in the `/getGameSales` endpoint.
 - **Concurrency for Import**: Uses multiple threads to quickly process and save data from the imported CSV file.

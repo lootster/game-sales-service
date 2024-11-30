@@ -1,6 +1,7 @@
 package com.example.gameSalesService.controller;
 
 import com.example.gameSalesService.entity.Game;
+import com.example.gameSalesService.entity.GameSalesAggregated;
 import com.example.gameSalesService.repository.GameRepository;
 import com.example.gameSalesService.repository.GameSalesAggregatedRepository;
 import com.example.gameSalesService.service.CacheWarmupService;
@@ -83,7 +84,6 @@ public class GameControllerTest {
         // Mock the Pageable argument
         given(gameRepository.findAll(PageRequest.of(0, 100))).willReturn(gamePage);
 
-        // Act & Assert
         mockMvc.perform(get("/api/getGameSales")
                         .param("page", "0")
                         .param("size", "100"))
@@ -101,7 +101,6 @@ public class GameControllerTest {
         // Mock the Pageable argument
         given(gameRepository.findAll(PageRequest.of(0, 100))).willReturn(gamePage);
 
-        // Act & Assert
         mockMvc.perform(get("/api/getGameSales")
                         .param("page", "0")
                         .param("size", "100"))
@@ -131,7 +130,6 @@ public class GameControllerTest {
         // Mocking the repository to return gamePage when using the date range
         given(gameRepository.findAllByDateOfSaleBetween(fromDate, toDate, pageable)).willReturn(gamePage);
 
-        // Act & Assert
         mockMvc.perform(get("/api/getGameSales")
                         .param("fromDate", "2024-11-24")
                         .param("toDate", "2024-11-27")
@@ -139,8 +137,8 @@ public class GameControllerTest {
                         .param("size", "100"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.games", hasSize(2))) // Checking the size of the game list
-                .andExpect(jsonPath("$.games[0].gameName", is("GameA"))) // Validate game name
-                .andExpect(jsonPath("$.games[1].gameName", is("GameB"))) // Validate game name
+                .andExpect(jsonPath("$.games[0].gameName", is("GameA")))
+                .andExpect(jsonPath("$.games[1].gameName", is("GameB")))
                 .andExpect(jsonPath("$.currentPage", is(0))) // Check the current page
                 .andExpect(jsonPath("$.totalItems", is(2))) // Check total items
                 .andExpect(jsonPath("$.totalPages", is(1))); // Check total pages
@@ -167,7 +165,6 @@ public class GameControllerTest {
         // Mocking the repository to return gamePage when sale price is greater than the given value
         given(gameRepository.findAllBySalePriceGreaterThan(salePrice, pageable)).willReturn(gamePage);
 
-        // Act & Assert
         mockMvc.perform(get("/api/getGameSales")
                         .param("salePrice", "150")
                         .param("filter", "greaterThan")
@@ -175,8 +172,8 @@ public class GameControllerTest {
                         .param("size", "100"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.games", hasSize(2))) // Checking the size of the game list
-                .andExpect(jsonPath("$.games[0].gameName", is("GameA"))) // Validate game name
-                .andExpect(jsonPath("$.games[1].gameName", is("GameB"))); // Validate game name
+                .andExpect(jsonPath("$.games[0].gameName", is("GameA")))
+                .andExpect(jsonPath("$.games[1].gameName", is("GameB")));
     }
 
     @Test
@@ -200,7 +197,6 @@ public class GameControllerTest {
         // Mocking the repository to return gamePage when sale price is less than the given value
         given(gameRepository.findAllBySalePriceLessThan(salePrice, pageable)).willReturn(gamePage);
 
-        // Act & Assert
         mockMvc.perform(get("/api/getGameSales")
                         .param("salePrice", "100")
                         .param("filter", "lessThan")
@@ -208,8 +204,8 @@ public class GameControllerTest {
                         .param("size", "100"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.games", hasSize(2))) // Checking the size of the game list
-                .andExpect(jsonPath("$.games[0].gameName", is("GameA"))) // Validate game name
-                .andExpect(jsonPath("$.games[1].gameName", is("GameB"))); // Validate game name
+                .andExpect(jsonPath("$.games[0].gameName", is("GameA")))
+                .andExpect(jsonPath("$.games[1].gameName", is("GameB")));
     }
 
     @Test
@@ -224,7 +220,7 @@ public class GameControllerTest {
         given(gameRepository.findAll(PageRequest.of(0, 100))).willReturn(gamePage1);
         given(gameRepository.findAll(PageRequest.of(1, 100))).willReturn(gamePage2);
 
-        // Act & Assert - First Page
+        // - First Page
         mockMvc.perform(get("/api/getGameSales")
                         .param("page", "0")
                         .param("size", "100"))
@@ -232,7 +228,7 @@ public class GameControllerTest {
                 .andExpect(jsonPath("$.games", hasSize(100)))
                 .andExpect(jsonPath("$.games[0].gameName", is("GamePage1_1")));
 
-        // Act & Assert - Second Page
+        // - Second Page
         mockMvc.perform(get("/api/getGameSales")
                         .param("page", "1")
                         .param("size", "100"))
@@ -240,6 +236,79 @@ public class GameControllerTest {
                 .andExpect(jsonPath("$.games", hasSize(100)))
                 .andExpect(jsonPath("$.games[0].gameName", is("GamePage2_1")));
     }
+
+    @Test
+    public void shouldReturnTotalSalesForGivenPeriod() throws Exception {
+        // Arrange: Mock the repository to return a sum for total sales in a specific period
+        LocalDate fromDate = LocalDate.of(2024, 4, 1);
+        LocalDate toDate = LocalDate.of(2024, 4, 30);
+        double totalSales = 54521283.68;
+
+        // Create an instance of GameSalesAggregated and set the total sales value
+        GameSalesAggregated gameSalesAggregated = new GameSalesAggregated();
+        gameSalesAggregated.setTotalSales(totalSales);
+
+        // Mocking the repository method to return the total sales for the given date range
+        given(gameSalesAggregatedRepository.findTotalSalesByDateOfSaleBetween(fromDate, toDate))
+                .willReturn(Arrays.asList(gameSalesAggregated));
+
+        mockMvc.perform(get("/api/getTotalSales")
+                        .param("fromDate", "2024-04-01")
+                        .param("toDate", "2024-04-30"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalSales", hasToString("54521283.68")));
+    }
+
+
+    @Test
+    public void shouldReturnBadRequestWhenSalesCountAndGameNoProvided() throws Exception {
+        mockMvc.perform(get("/api/getTotalSales")
+                        .param("fromDate", "2024-04-01")
+                        .param("toDate", "2024-04-30")
+                        .param("gameNo", "1")
+                        .param("filter", "salesCount"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error", is("To get sales count, gameNo must not be included.")));
+    }
+
+    @Test
+    public void shouldReturnBadRequestWhenFromDateIsMissing() throws Exception {
+        mockMvc.perform(get("/api/getTotalSales")
+                        .param("toDate", "2024-04-30"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void shouldReturnBadRequestWhenToDateIsMissing() throws Exception {
+        mockMvc.perform(get("/api/getTotalSales")
+                        .param("fromDate", "2024-04-01"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void shouldReturnTotalSalesForGivenGameNumber() throws Exception {
+        // Arrange: Mock the repository to return a sum for total sales for a specific game number in a given period
+        LocalDate fromDate = LocalDate.of(2024, 4, 1);
+        LocalDate toDate = LocalDate.of(2024, 4, 30);
+        int gameNo = 1;
+        double totalSales = 15000.0;
+
+        // Create an instance of GameSalesAggregated and set the value for totalSales
+        GameSalesAggregated gameSalesAggregated = new GameSalesAggregated();
+        gameSalesAggregated.setTotalSales(totalSales);
+
+        // Mocking the repository method to return the total sales for the given date range and game number
+        given(gameSalesAggregatedRepository.findTotalSalesByDateOfSaleBetweenAndGameNo(fromDate, toDate, gameNo))
+                .willReturn(Arrays.asList(gameSalesAggregated));
+
+        mockMvc.perform(get("/api/getTotalSales")
+                        .param("fromDate", "2024-04-01")
+                        .param("toDate", "2024-04-30")
+                        .param("gameNo", String.valueOf(gameNo)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalSales", is("15000.00")));
+    }
+
 
     private List<Game> createGameList(int count, String gameNamePrefix) {
         List<Game> games = new ArrayList<>();

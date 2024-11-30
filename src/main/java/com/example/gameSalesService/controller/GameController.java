@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -163,7 +165,9 @@ public class GameController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body("No total sales data found for the given period.");
             }
-            result.put("totalSales", totalSales);
+
+            BigDecimal roundedTotalSales = BigDecimal.valueOf(totalSales).setScale(2, RoundingMode.HALF_UP);
+            result.put("totalSales", roundedTotalSales.toPlainString());
         }
 
         return ResponseEntity.ok(result);

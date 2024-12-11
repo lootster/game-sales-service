@@ -45,7 +45,7 @@ public class ImportService {
             int batchSize = 2000;
             ExecutorService executor = Executors.newFixedThreadPool(10);
             List<Game> gamesBatch = new ArrayList<>();
-            Map<LocalDate, GameSalesAggregated> aggregationMap = new ConcurrentHashMap<>();
+            Map<String, GameSalesAggregated> aggregationMap = new ConcurrentHashMap<>();
 
             try (BufferedReader reader = new BufferedReader(new FileReader(filePath, StandardCharsets.UTF_8))) {
                 String line;
@@ -81,14 +81,16 @@ public class ImportService {
                     double salePrice = game.getSalePrice();
                     Integer gameNo = game.getGameNo();
 
+                    String aggregationKey = saleDate + "-" + gameNo;  // Include both date and gameNo
+
                     // Aggregate by date and game number
-                    aggregationMap.compute(saleDate, (date, aggregated) -> {
+                    aggregationMap.compute(aggregationKey, (date, aggregated) -> {
                         if (aggregated == null) {
                             aggregated = new GameSalesAggregated();
-                            aggregated.setDateOfSale(date);
+                            aggregated.setDateOfSale(saleDate);
+                            aggregated.setGameNo(gameNo);  // Set game number
                             aggregated.setTotalGamesSold(0);
                             aggregated.setTotalSales(0.0);
-                            aggregated.setGameNo(gameNo);  // Set game number
                         }
 
                         aggregated.setTotalGamesSold(aggregated.getTotalGamesSold() + 1);
@@ -151,7 +153,7 @@ public class ImportService {
         }
     }
 
-    private void saveAggregatedData(Map<LocalDate, GameSalesAggregated> aggregationMap) {
+    private void saveAggregatedData(Map<String, GameSalesAggregated> aggregationMap) {
         EntityManager em = entityManagerFactory.createEntityManager();
         EntityTransaction transaction = em.getTransaction();
 
